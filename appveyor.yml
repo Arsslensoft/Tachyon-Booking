@@ -53,7 +53,6 @@ build_script:
 test:
 
 test_script:
-  - dotnet test "%test_name%" 
   - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:"test --logger:trx;LogFileName=results.trx /p:DebugType=full Tachyon.Booking.Tests\Tachyon.Booking.Tests.csproj" -filter:"+[Tachyon.Booking*]* -[Tachyon.Booking.Tests*]*" -output:".\Tachyon.Booking.Coverage.xml"
 
 after_test:
