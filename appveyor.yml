@@ -49,13 +49,13 @@ build_script:
   - msbuild "%solution_name%" %param% /p:Configuration=Debug /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - msbuild "%solution_name%" %param% /p:Configuration=Release /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
+test:
+
 test_script:
   - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:"test --logger:trx;LogFileName=results.trx /p:DebugType=full C:\projects\Tachyon-Booking\Tachyon.Booking.Tests\Tachyon.Booking.Tests.csproj" -filter:"+[Tachyon.Booking*]* -[Tachyon.Booking.Tests*]*" -output:".\Tachyon.Booking.Coverage.xml" -oldstyle
 
 after_test:
   - codecov -f .\Tachyon.Booking.Coverage.xml -t $(CODECOV_TOKEN)
-
-test: off
 
 branches:
   only:
