@@ -1,78 +1,56 @@
-#---------------------------------#
-#      general configuration      #
-#---------------------------------#
-
-# version format
-version: 1.0.0.{build}-{branch}
-
-#---------------------------------#
-#    environment configuration    #
-#---------------------------------#
-
-# Build worker image (VM template)
-image: Visual Studio 2019
-
-# scripts that are called at very beginning, before repo cloning
-init:
-  - git config --global core.autocrlf input
-
-# clone directory
-clone_folder: C:\projects\Tachyon-Booking
-
-# set clone depth
-clone_depth: 5                      # clone entire repository history if not defined
-
+version: 1.0.{build}
+configuration: Release
+platform: Any CPU
 environment:
-  matrix:
-  - solution_name: "Tachyon.Booking.sln"
-    test_name: "Tachyon.Booking.Tests/Tachyon.Booking.Tests.csproj"
-    param: ""
-
-# this is how to allow failing jobs in the matrix
-matrix:
-  fast_finish: false     # set this flag to immediately finish build once one of the jobs fails.
-
-# scripts to run before build
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+cache: '%USERPROFILE%\.nuget\packages'
 before_build:
-  - nuget restore "%solution_name%"
-
-# scripts to run *after* solution is built and *before* automatic packaging occurs (web apps, NuGet packages, Azure Cloud Services)
-before_package:
-
-# scripts to run after build
+- cmd: dotnet restore
+- ps: >-
+    Get-ChildItem -Path $ENV:APPVEYOR_BUILD_FOLDER -Recurse –File -Filter project.json | foreach {
+      $jsonFile = Get-Content $_.FullName -raw | ConvertFrom-Json
+      if($jsonFile.version)
+      {
+          $jsonFile.version = $ENV:APPVEYOR_BUILD_VERSION
+          $jsonFile | ConvertTo-Json -Depth 999 | Out-File $_.FullName
+      }
+    }
+build:
+  verbosity: normal
 after_build:
-
-# to run your custom scripts instead of automatic MSBuild
-build_script:
-  - msbuild "%solution_name%" %param% /p:Configuration=Debug /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - msbuild "%solution_name%" %param% /p:Configuration=Release /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-
-# test 
-test:
-
+- dotnet pack "src\utes.Xunit" -c %CONFIGURATION% --no-build --version-suffix %APPVEYOR_BUILD_VERSION% -o artifacts
 test_script:
-  - if NOT "%test_name%" == "void" ( dotnet test "%test_name%" )
-# TODO nunit3-console v3.6 cannot load csproj, enable when newer version is available
-#  - if NOT "%test_name%" == "void" ( nunit3-console "%test_name%" --result=./myresults.xml;format=AppVeyor )
-#  - $wc = New-Object 'System.Net.WebClient'
-#  - $wc.UploadFile("https://ci.appveyor.com/api/testresults/nunit3/$($env:APPVEYOR_JOB_ID)", (Resolve-Path ./myresults.xml))
+- ps: >-
+    $resultsFile = $ENV:APPVEYOR_BUILD_FOLDER + '\results.xml'
 
-# build cache to preserve files/folders between builds
-cache:
-  - packages -> **\packages.config  
+    $openCoverConsole = $ENV:USERPROFILE + '\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe'
 
-#---------------------------------#
-#        global handlers          #
-#---------------------------------#
+    $target = '-target:C:\Program Files\dotnet\dotnet.exe'
 
-# on successful build
-on_success:
-  - echo on_success
+    $targetArgs = '-targetargs: test ' + $ENV:APPVEYOR_BUILD_FOLDER + '\tests\utes.WebApplicationAssemblyStorage.Tests -c ' + $ENV:CONFIGURATION
 
-# on build failure
-on_failure:
-  - echo on_failure
+    $filter = '-filter:+[utes.WebApplicationAssemblyStorage*]* -[utes.WebApplicationAssemblyStorage.Tests]* -[utes.WebApplicationAssemblyStorage]*MyAssemblyLoadContext*'
 
-# after build failure or success
-on_finish:
-  - echo on_finish
+    & $openCoverConsole $target $targetArgs '-register:user' $filter '-oldStyle'
+
+    $targetArgs = '-targetargs: test ' + $ENV:APPVEYOR_BUILD_FOLDER + '\tests\utes.WebApp.Tests -c ' + $ENV:CONFIGURATION
+
+    $filter = '-filter:+[utes.WebApp*]* -[utes.WebApp.Tests]* -[utes.WebApp]*Startup* -[utes.WebApp]*Program* -[utes.WebApp]*Models* -[utes.WebApp]*Extensions* -[utes.WebApp]*Resources*'
+
+    $output = '-output:' + $resultsFile
+
+    & $openCoverConsole $target $targetArgs '-register:user' $filter $output '-mergeoutput' '-oldStyle'
+
+    $artifactsFolder = $ENV:APPVEYOR_BUILD_FOLDER + '\artifacts'
+
+    Copy-Item $resultsFile $artifactsFolder
+
+    $ENV:PATH = 'C:\\Python34;C:\\Python34\\Scripts;' + $ENV:PATH
+
+    python -m pip install --upgrade pip
+
+    pip install git+git://github.com/codecov/codecov-python.git
+
+    codecov -f $resultsFile -X gcov
+artifacts:
+- path: artifacts\**\*.*
