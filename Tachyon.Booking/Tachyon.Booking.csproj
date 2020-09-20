@@ -5,10 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Handlers\" />
     <Folder Include="Utils\" />
     <Folder Include="Persistence\" />
-    <Folder Include="Policies\" />
   </ItemGroup>
 
 </Project>
