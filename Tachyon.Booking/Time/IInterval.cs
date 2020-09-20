@@ -8,5 +8,7 @@ namespace Tachyon.Booking.Time
     {
         T Start { get; }
         T Due { get; }
+
+        bool IsValid { get; }
     }
 }

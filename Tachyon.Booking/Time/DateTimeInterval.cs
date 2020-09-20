@@ -6,11 +6,13 @@ namespace Tachyon.Booking.Time
     {
         public DateTime Start { get; }
         public DateTime Due { get; }
-
+        public bool IsValid => Start < Due;
         public DateTimeInterval(DateTime start, DateTime due)
         {
             Start = start;
             Due = due;
+            if (!IsValid) throw new ArgumentException("Due value must be greater than start", nameof(due));
+
         }
 
         public bool Equals(DateTimeInterval other)

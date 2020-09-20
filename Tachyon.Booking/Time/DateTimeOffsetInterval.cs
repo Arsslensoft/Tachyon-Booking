@@ -8,11 +8,12 @@ namespace Tachyon.Booking.Time
     {
         public DateTimeOffset Start { get; }
         public DateTimeOffset Due { get; }
-
+        public bool IsValid => Start < Due;
         public DateTimeOffsetInterval(DateTimeOffset start, DateTimeOffset due)
         {
             Start = start;
             Due = due;
+            if (!IsValid) throw new ArgumentException("Due value must be greater than start", nameof(due));
         }
 
         public bool Equals(DateTimeOffsetInterval other)
@@ -51,6 +52,42 @@ namespace Tachyon.Booking.Time
         public static bool operator !=(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => !a.Equals(b);
         public static bool operator >(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => a.CompareTo(b) == 1;
         public static bool operator <(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => a.CompareTo(b) == -1;
+        #endregion
+
+        #region Arithmetic Operators
+        /// <summary>
+        /// Cartesian product of two <see cref="DateTimeOffsetInterval"/> intervals
+        /// </summary>
+        /// <param name="a">The left interval</param>
+        /// <param name="b">The right interval</param>
+        /// <returns></returns>
+        public static DateTimeOffsetInterval? operator &(DateTimeOffsetInterval a, DateTimeOffsetInterval b)
+        {
+            if (a.Start == a.Due || b.Start == b.Due)
+                return null; // No actual date range
+
+            if (a == b)
+                return a; // If any set is the same time, then by default there must be some overlap. 
+
+            if (a.Start < b.Start) // a before b
+            {
+                if (a.Due > b.Start && a.Due < b.Due) // a ends after b start
+                    return new DateTimeOffsetInterval(b.Start, a.Due);
+
+                if (a.Due >= b.Due) // a ends after b end  (b in a)
+                    return b;
+            }
+            else // a after b
+            {
+                if (b.Due > a.Start && b.Due < a.Due) // b ends after a start && b ends before a end 
+                    return new DateTimeOffsetInterval(a.Start, b.Due);
+
+                if (b.Due >= a.Due) // a is in b
+                    return a;
+            }
+            return null;
+        }
+
         #endregion
     }
 
