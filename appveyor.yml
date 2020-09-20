@@ -35,8 +35,10 @@ matrix:
 # scripts to run before build
 before_build:
   - nuget restore "%solution_name%"
-  - choco install opencover.portable
-  - choco install codecov
+  - cinst opencover.portable
+  - cinst codecov
+
+
 
 # scripts to run *after* solution is built and *before* automatic packaging occurs (web apps, NuGet packages, Azure Cloud Services)
 before_package:
@@ -49,13 +51,13 @@ build_script:
   - msbuild "%solution_name%" %param% /p:Configuration=Debug /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - msbuild "%solution_name%" %param% /p:Configuration=Release /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
-test:
+test: off
 
 test_script:
-  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:"test --logger:trx;LogFileName=results.trx /p:DebugType=full C:\projects\Tachyon-Booking\Tachyon.Booking.Tests\Tachyon.Booking.Tests.csproj" -filter:"+[Tachyon.Booking*]* -[Tachyon.Booking.Tests*]*" -output:".\Tachyon.Booking.Coverage.xml" -oldstyle
+  - ps: ./coverage.ps1
 
 after_test:
-  - codecov -f .\Tachyon.Booking.Coverage.xml -t $(CODECOV_TOKEN)
+  - codecov -f coverage.xml -t $(CODECOV_TOKEN)
 
 branches:
   only:
