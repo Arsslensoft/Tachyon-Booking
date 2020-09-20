@@ -51,8 +51,14 @@ build_script:
 test:
 
 test_script:
-  - dotnet test "%test_name%" ;
-  - packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:"packages\xunit.runner.console.2.4.1\tools\xunit.console.x86.exe" -targetargs:"YourTestDLL -noshadow" -output:".\coverage.xml" -filter:"+[Tachyon.Booking*]* -[Tachyon.Booking.Tests*]*" )
+  - dotnet test "%test_name%"
+ - .\packages\OpenCover.4.6.519\tools\OpenCover.Console.exe -register:user -target:".\packages\xunit.runner.console.2.4.1\tools\xunit.console.x86.exe" -targetargs:"Tachyon.Booking.Tests\bin\Debug\Tachyon.Booking.Tests.dll -noshadow" -output:"coverage.xml" -filter:"+[Tachyon.Booking*]* -[Tachyon.Booking.Tests*]*"
+
+after_test:
+  - ps: |
+      $env:PATH = 'C:\msys64\usr\bin;' + $env:PATH
+      Invoke-WebRequest -Uri 'https://codecov.io/bash' -OutFile codecov.sh
+      bash codecov.sh -f "coverage.xml" -t CODECOV_TOKEN
 
 # build cache to preserve files/folders between builds
 cache:
