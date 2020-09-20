@@ -2,10 +2,10 @@
 
 namespace Tachyon.Booking.Time
 {
-    public struct TimeInterval : IEquatable<TimeInterval>, IComparable<TimeInterval>
+    public struct TimeInterval : IInterval<TimeSpan>, IEquatable<TimeInterval>, IComparable<TimeInterval>
     {
-        public TimeSpan Start { get; set; }
-        public TimeSpan Due { get; set; }
+        public TimeSpan Start { get; }
+        public TimeSpan Due { get; }
 
         public TimeInterval(TimeSpan start, TimeSpan due)
         {
@@ -23,5 +23,32 @@ namespace Tachyon.Booking.Time
             var startResult = Start.CompareTo(other.Start);
             return startResult == 0 ? Due.CompareTo(other.Due) : startResult;
         }
+        public override string ToString()
+        {
+            return $"{Start} -> {Due}";
+        }
+
+        public override int GetHashCode()
+        {
+            return Start.GetHashCode() + Due.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj != null && this.Equals((TimeInterval)obj);
+        }
+
+        #region Conversion Operators
+        public static implicit operator TimeInterval(Tuple<TimeSpan, TimeSpan> value) =>
+            new TimeInterval(value.Item1, value.Item2);
+
+        #endregion
+
+        #region Comparison Operators
+        public static bool operator ==(TimeInterval a, TimeInterval b) => a.Equals(b);
+        public static bool operator !=(TimeInterval a, TimeInterval b) => !a.Equals(b);
+        public static bool operator >(TimeInterval a, TimeInterval b) => a.CompareTo(b) == 1;
+        public static bool operator <(TimeInterval a, TimeInterval b) => a.CompareTo(b) == -1;
+        #endregion
     }
 }
