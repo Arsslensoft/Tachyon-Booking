@@ -154,8 +154,7 @@ namespace Tachyon.Booking.Time
         /// <param name="b">The right intervals</param>
         /// <returns>The common date <see cref="DateTimeOffsetInterval"/> interval between two or more <see cref="DateTimeOffsetInterval"/> intervals.</returns>
         public static IEnumerable<DateTimeOffsetInterval?> operator &(DateTimeOffsetInterval a, IEnumerable<DateTimeOffsetInterval> b)
-            => b.Select(bEntry => a & bEntry).Where(r => r != null);
-
+              => b.Select(bEntry => a & bEntry).Where(r => r != null).Distinct();
         /// <summary>
         /// Removes an interval from a list of <see cref="DateTimeOffsetInterval"/> intervals.
         /// </summary>
@@ -163,7 +162,7 @@ namespace Tachyon.Booking.Time
         /// <param name="mask">The mask to apply.</param>
         /// <returns>a - mask = U(ai - mask) where ai is part of a.</returns>
         public static IEnumerable<DateTimeOffsetInterval> operator -(IEnumerable<DateTimeOffsetInterval> intervals,
-            DateTimeOffsetInterval mask)
+                DateTimeOffsetInterval mask)
         {
             IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
             return intervals.Aggregate(excludedIntervals, (current, interval) => current.Union((interval - mask).Where(x => x != null)
@@ -178,23 +177,17 @@ namespace Tachyon.Booking.Time
         /// <returns>r split into pieces after stripping b intervals from it</returns>
         public static IEnumerable<DateTimeOffsetInterval> operator -(DateTimeOffsetInterval r, IEnumerable<DateTimeOffsetInterval> b)
         {
-            if (r == null || b == null) yield break;
-            var masks = b.OrderBy(x => x.Due).ToList();
-            IEnumerable<DateTimeOffsetInterval> ranges = new List<DateTimeOffsetInterval>() { r };
-            ranges = masks.Aggregate(ranges, (current, mask) => (current - mask));
-
-            // unify intervals if possible
-            var orderedIntervals = ranges.OrderBy(x => x.Start).ToList();
-            for (var i = 0; i < orderedIntervals.Count - 1; i++)
+            if (b == null)
             {
-                var union = (orderedIntervals[i] + orderedIntervals[i + 1]).ToList();
-                if (union.Count != 1) continue;
-                orderedIntervals[i] = union[0];
-                orderedIntervals.RemoveAt(i + 1);
+                yield return r;
+                yield break;
             }
 
-            foreach (var interval in orderedIntervals)
-                yield return interval;
+            IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
+            foreach (var dateTimeOffsetInterval in b.Aggregate(excludedIntervals, (current, interval) =>
+                current.Union((interval - r).Where(x => x != null)
+                    .Cast<DateTimeOffsetInterval>())))
+                yield return dateTimeOffsetInterval;
 
         }
 

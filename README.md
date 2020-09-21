@@ -7,7 +7,7 @@ Tachyon Booking is a library used to facilitate booking system implementation by
 # To Do
 * ~~Support Time, DateTime and DateTimeOffset intervals and their corresponding operations.~~
 * ~~Support union, product, exclusion, interval list exclusion.~~
-* Implement the booking handling layer
+* Implement the booking middleware layer
 * Implement the scheduling layer
 * Implement booking policies handling
 * Implement data sourcing layer

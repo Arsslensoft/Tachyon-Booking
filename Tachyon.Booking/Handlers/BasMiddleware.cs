@@ -4,10 +4,10 @@ using System.Text;
 
 namespace Tachyon.Booking.Handlers
 {
-    public abstract class BaseHandler : IHandler
+    public abstract class BasMiddleware : IMiddleware
     {
-        public IHandler Next { get; private set; }
-        public IHandler With<T>() where T : IHandler
+        public IMiddleware Next { get; private set; }
+        public IMiddleware With<T>() where T : IMiddleware
         {
             if (Next == null)
                 Next = Activator.CreateInstance<T>();

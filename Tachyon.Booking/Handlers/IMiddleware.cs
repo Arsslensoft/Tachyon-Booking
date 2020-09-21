@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Tachyon.Booking.Handlers
 {
-    public interface IHandler
+    public interface IMiddleware
     {
-        IHandler Next { get; }
-        IHandler With<T>() where T : IHandler;
+        IMiddleware Next { get; }
+        IMiddleware With<T>() where T : IMiddleware;
     }
 }
