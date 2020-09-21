@@ -128,6 +128,25 @@ namespace Tachyon.Booking.Tests.Time
             Assert.Equal(i.Start, b.Start);
             Assert.Equal(i.Due, b.Due);
         }
+
+        [Fact]
+        public void UnionListTest()
+        {
+            var r = A + ListA.Skip(1);
+            Assert.Contains(r, x => x == ContainsA);
+            Assert.Contains(r, x => x == A);
+            Assert.Contains(r, x => x == NoIntersectionWithA);
+            Assert.Contains(r, x => x == new DateTimeOffsetInterval(A.Start, NoIntersectionWithA.Due));
+            Assert.Null(A + (IEnumerable<DateTimeOffsetInterval>)null);
+            Assert.Null((IEnumerable<DateTimeOffsetInterval>)null + A);
+        }
+
+        [Fact]
+        public void UnionListCommutativityTest()
+        {
+            Assert.True((A + ListA.Skip(1)).All(x => (ListA.Skip(1) + A).Any(y => x == y)));
+        }
+
         [Fact]
         public void UnionCommutativityTest()
         {

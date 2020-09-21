@@ -211,7 +211,7 @@ namespace Tachyon.Booking.Time
         {
             if (b == null) return null;
             IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
-            return b.Aggregate(excludedIntervals, (current, interval) => current.Union((interval + a).Where(x => x != null))).Distinct();
+            return b.Aggregate(excludedIntervals, (current, interval) => current.Union(interval + a)).Distinct();
         }
         /// <summary>
         /// Applies a union operation between two or more <see cref="DateTimeOffsetInterval"/> intervals.
@@ -223,7 +223,7 @@ namespace Tachyon.Booking.Time
         {
             if (b == null) return null;
             IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
-            return b.Aggregate(excludedIntervals, (current, interval) => current.Union((interval + a).Where(x => x != null))).Distinct();
+            return b.Aggregate(excludedIntervals, (current, interval) => current.Union(interval + a)).Distinct();
         }
         #endregion
     }
