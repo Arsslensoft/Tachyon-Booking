@@ -92,6 +92,13 @@ namespace Tachyon.Booking.Tests.Time
             Assert.Equal(2, r.Count());
             Assert.Contains(r, x => x == A);
             Assert.Contains(r, x => x.Value.Start == IntersectsWithA.Start && x.Value.Due == A.Due);
+
+            var s = ListA & A;
+            Assert.NotEmpty(s);
+            Assert.Equal(2, s.Count());
+            Assert.Contains(s, x => x == A);
+            Assert.Contains(s, x => x.Value.Start == IntersectsWithA.Start && x.Value.Due == A.Due);
+
         }
 
 
