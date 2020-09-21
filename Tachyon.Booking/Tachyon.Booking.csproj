@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <Folder Include="Utils\" />
-    <Folder Include="Persistence\" />
   </ItemGroup>
 
 </Project>
