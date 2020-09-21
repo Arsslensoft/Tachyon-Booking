@@ -83,6 +83,7 @@ namespace Tachyon.Booking.Tests.Time
             Assert.Equal(A & NoIntersectionWithA, NoIntersectionWithA & A);
             Assert.Equal(A & IntersectsWithA, IntersectsWithA & A);
         }
+
         [Fact]
         public void CartesianProductListTest()
         {
@@ -178,7 +179,12 @@ namespace Tachyon.Booking.Tests.Time
             Assert.Contains(r, x => x.Start == ContainsA.Start && x.Due == A.Start);
             Assert.Contains(r, x => x.Start == A.Due && x.Due == ContainsA.Due);
         }
-
+        [Fact]
+        public void ExceptListNullTest()
+        {
+            Assert.Null(A - (IEnumerable<DateTimeOffsetInterval>)null);
+            Assert.Null((IEnumerable<DateTimeOffsetInterval>)null - A);
+        }
         [Fact]
         public void EqualityTest()
         {
@@ -224,11 +230,30 @@ namespace Tachyon.Booking.Tests.Time
         }
 
         [Fact]
+        public void EqualObjectTest()
+        {
+            Assert.True(A.Equals((object)new DateTimeOffsetInterval(A.Start, A.Due)));
+            Assert.False(A.Equals((object)new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(-1))));
+            Assert.False(A.Equals((object)new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(1))));
+        }
+
+        [Fact]
+        public void ImplicitConversionTest()
+        {
+            DateTimeOffsetInterval i = (A.Start, A.Due);
+            DateTimeOffsetInterval j = (A.Start, A.Due);
+            Assert.Equal(A, i);
+            Assert.Equal(A, j);
+        }
+
+        [Fact]
         public void GetHashCodeTest()
         {
             Assert.Equal(A.GetHashCode(), (new DateTimeOffsetInterval(A.Start, A.Due)).GetHashCode());
             Assert.NotEqual(A.GetHashCode(), (new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(1))).GetHashCode());
             Assert.NotEqual(A.GetHashCode(), (new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(-1))).GetHashCode());
         }
+
+
     }
 }

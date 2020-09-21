@@ -46,6 +46,8 @@ namespace Tachyon.Booking.Time
         public static implicit operator DateTimeOffsetInterval(Tuple<DateTimeOffset, DateTimeOffset> value) =>
             new DateTimeOffsetInterval(value.Item1, value.Item2);
 
+        public static implicit operator DateTimeOffsetInterval((DateTimeOffset start, DateTimeOffset due) value) =>
+            new DateTimeOffsetInterval(value.start, value.due);
         #endregion
 
         #region Comparison Operators
@@ -64,9 +66,6 @@ namespace Tachyon.Booking.Time
         /// <returns>The common date <see cref="DateTimeOffsetInterval"/> interval between two <see cref="DateTimeOffsetInterval"/> intervals.</returns>
         public static DateTimeOffsetInterval? operator &(DateTimeOffsetInterval a, DateTimeOffsetInterval b)
         {
-            if (a.Start == a.Due || b.Start == b.Due)
-                return null; // No actual date range
-
             if (a == b)
                 return a; // If any set is the same time, then by default there must be some overlap. 
 
@@ -109,7 +108,7 @@ namespace Tachyon.Booking.Time
         /// <param name="b">The right interval</param>
         /// <returns>(All intervals except b) & a</returns>
         public static IEnumerable<DateTimeOffsetInterval?> operator -(DateTimeOffsetInterval a, DateTimeOffsetInterval b)
-            => (!b).Select(bEntry => a & bEntry).Where(r => r != null);
+            => (!b)?.Select(bEntry => a & bEntry).Where(r => r != null);
 
         /// <summary>
         /// Applies a union operation between two <see cref="DateTimeOffsetInterval"/> intervals.
@@ -154,7 +153,17 @@ namespace Tachyon.Booking.Time
         /// <param name="b">The right intervals</param>
         /// <returns>The common date <see cref="DateTimeOffsetInterval"/> interval between two or more <see cref="DateTimeOffsetInterval"/> intervals.</returns>
         public static IEnumerable<DateTimeOffsetInterval?> operator &(DateTimeOffsetInterval a, IEnumerable<DateTimeOffsetInterval> b)
-              => b.Select(bEntry => a & bEntry).Where(r => r != null).Distinct();
+              => b?.Select(bEntry => a & bEntry).Where(r => r != null).Distinct();
+
+        /// <summary>
+        /// Cartesian product of two or more <see cref="DateTimeOffsetInterval"/> intervals.
+        /// a & b = U(a & bi) where bi is part of b.
+        /// </summary>
+        /// <param name="a">The right interval</param>
+        /// <param name="b">The left intervals</param>
+        /// <returns>The common date <see cref="DateTimeOffsetInterval"/> interval between two or more <see cref="DateTimeOffsetInterval"/> intervals.</returns>
+        public static IEnumerable<DateTimeOffsetInterval?> operator &(IEnumerable<DateTimeOffsetInterval> b, DateTimeOffsetInterval a)
+            => b?.Select(bEntry => a & bEntry).Where(r => r != null).Distinct();
         /// <summary>
         /// Removes an interval from a list of <see cref="DateTimeOffsetInterval"/> intervals.
         /// </summary>
@@ -164,6 +173,7 @@ namespace Tachyon.Booking.Time
         public static IEnumerable<DateTimeOffsetInterval> operator -(IEnumerable<DateTimeOffsetInterval> intervals,
                 DateTimeOffsetInterval mask)
         {
+            if (intervals == null) return null;
             IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
             return intervals.Aggregate(excludedIntervals, (current, interval) => current.Union((interval - mask).Where(x => x != null)
                 .Cast<DateTimeOffsetInterval>()));
@@ -191,7 +201,30 @@ namespace Tachyon.Booking.Time
 
         }
 
-
+        /// <summary>
+        /// Applies a union operation between two or more <see cref="DateTimeOffsetInterval"/> intervals.
+        /// </summary>
+        /// <param name="a">The left interval</param>
+        /// <param name="b">The right intervals</param>
+        /// <returns>a U bi where bi is part of b</returns>
+        public static IEnumerable<DateTimeOffsetInterval> operator +(DateTimeOffsetInterval a, IEnumerable<DateTimeOffsetInterval> b)
+        {
+            if (b == null) return null;
+            IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
+            return b.Aggregate(excludedIntervals, (current, interval) => current.Union((interval + a).Where(x => x != null))).Distinct();
+        }
+        /// <summary>
+        /// Applies a union operation between two or more <see cref="DateTimeOffsetInterval"/> intervals.
+        /// </summary>
+        /// <param name="a">The right interval</param>
+        /// <param name="b">The left intervals</param>
+        /// <returns>a U bi where bi is part of b</returns>
+        public static IEnumerable<DateTimeOffsetInterval> operator +(IEnumerable<DateTimeOffsetInterval> b, DateTimeOffsetInterval a)
+        {
+            if (b == null) return null;
+            IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
+            return b.Aggregate(excludedIntervals, (current, interval) => current.Union((interval + a).Where(x => x != null))).Distinct();
+        }
         #endregion
     }
 
