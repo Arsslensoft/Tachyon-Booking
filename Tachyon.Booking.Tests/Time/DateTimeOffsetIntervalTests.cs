@@ -146,6 +146,15 @@ namespace Tachyon.Booking.Tests.Time
         {
             Assert.True((A + ListA.Skip(1)).All(x => (ListA.Skip(1) + A).Any(y => x == y)));
         }
+        [Fact]
+        public void UnionSameValueTest()
+        {
+            Assert.Single(A + A);
+            Assert.Equal((A + A).FirstOrDefault(), A);
+            Assert.Equal((ContainsA + A).FirstOrDefault(), ContainsA);
+            Assert.Equal((A + ContainsA).FirstOrDefault(), ContainsA);
+
+        }
 
         [Fact]
         public void UnionCommutativityTest()
@@ -262,7 +271,7 @@ namespace Tachyon.Booking.Tests.Time
         public void ImplicitConversionTest()
         {
             DateTimeOffsetInterval i = (A.Start, A.Due);
-            DateTimeOffsetInterval j = (A.Start, A.Due);
+            DateTimeOffsetInterval j = new Tuple<DateTimeOffset, DateTimeOffset>(A.Start, A.Due);
             Assert.Equal(A, i);
             Assert.Equal(A, j);
         }
@@ -302,5 +311,11 @@ namespace Tachyon.Booking.Tests.Time
             Assert.True(ContainsA ^ A);
         }
 
+        [Fact]
+        public void IsValiTest()
+        {
+            DateTimeOffsetInterval a = A;
+            Assert.Throws<ArgumentException>("due", () => a = (A.Start, A.Start));
+        }
     }
 }
