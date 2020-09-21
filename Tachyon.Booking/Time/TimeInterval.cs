@@ -9,7 +9,6 @@ namespace Tachyon.Booking.Time
         public TimeSpan Start { get; }
         public TimeSpan Due { get; }
         public bool IsValid => Start < Due;
-
         public TimeInterval(TimeSpan start, TimeSpan due)
         {
             Start = start;
@@ -46,6 +45,8 @@ namespace Tachyon.Booking.Time
         public static implicit operator TimeInterval(Tuple<TimeSpan, TimeSpan> value) =>
             new TimeInterval(value.Item1, value.Item2);
 
+        public static implicit operator TimeInterval((TimeSpan start, TimeSpan due) value) =>
+            new TimeInterval(value.start, value.due);
         #endregion
 
         #region Comparison Operators
@@ -53,6 +54,8 @@ namespace Tachyon.Booking.Time
         public static bool operator !=(TimeInterval a, TimeInterval b) => !a.Equals(b);
         public static bool operator >(TimeInterval a, TimeInterval b) => a.CompareTo(b) == 1;
         public static bool operator <(TimeInterval a, TimeInterval b) => a.CompareTo(b) == -1;
+        public static bool operator ^(TimeInterval a, TimeInterval b) => (a.Start >= b.Start && a.Due <= b.Due); // a in b 
+        public static bool operator |(TimeInterval a, TimeInterval b) => (a.Start >= b.Start && a.Start <= b.Due) || (a.Due >= b.Start && a.Due <= b.Due) || (b ^ a); // a intersects with b
         #endregion
 
         #region Simple Arithmetic Operators
@@ -64,9 +67,6 @@ namespace Tachyon.Booking.Time
         /// <returns>The common date <see cref="TimeInterval"/> interval between two <see cref="TimeInterval"/> intervals.</returns>
         public static TimeInterval? operator &(TimeInterval a, TimeInterval b)
         {
-            if (a.Start == a.Due || b.Start == b.Due)
-                return null; // No actual date range
-
             if (a == b)
                 return a; // If any set is the same time, then by default there must be some overlap. 
 
@@ -109,7 +109,7 @@ namespace Tachyon.Booking.Time
         /// <param name="b">The right interval</param>
         /// <returns>(All intervals except b) & a</returns>
         public static IEnumerable<TimeInterval?> operator -(TimeInterval a, TimeInterval b)
-            => (!b).Select(bEntry => a & bEntry).Where(r => r != null);
+            => (!b)?.Select(bEntry => a & bEntry).Where(r => r != null);
 
         /// <summary>
         /// Applies a union operation between two <see cref="TimeInterval"/> intervals.
@@ -119,27 +119,21 @@ namespace Tachyon.Booking.Time
         /// <returns>a U b</returns>
         public static IEnumerable<TimeInterval> operator +(TimeInterval a, TimeInterval b)
         {
-            var r = a & b;
-            var first = a.Start < b.Start ? a : b;
-            var last = a.Start > b.Start ? a : b;
-            if (r != null)
-            {
-                // a in b or b in a
-                if (r == a) // b is bigger than a
-                {
-                    yield return b;
-                }
-                else if (r == b) // a is bigger than b
-                {
-                    yield return a;
-                }
-                else if (first.Start <= r.Value.Start || last.Start <= r.Value.Start) // left or left
-                    yield return new TimeInterval(first.Start, last.Due);
-            }
-            else
+
+            if (a.Start > b.Due || a.Due < b.Start)    // a inter b = empty
             {
                 yield return a;
                 yield return b;
+            }
+            else if (a ^ b) // a in b
+                yield return b;
+            else if (b ^ a) // b in a
+                yield return a;
+            else
+            {
+                var first = a.Start < b.Start ? a : b;
+                var last = a.Start > b.Start ? a : b;
+                yield return new TimeInterval(first.Start, last.Due);
             }
         }
 
@@ -154,8 +148,17 @@ namespace Tachyon.Booking.Time
         /// <param name="b">The right intervals</param>
         /// <returns>The common date <see cref="TimeInterval"/> interval between two or more <see cref="TimeInterval"/> intervals.</returns>
         public static IEnumerable<TimeInterval?> operator &(TimeInterval a, IEnumerable<TimeInterval> b)
-            => b.Select(bEntry => a & bEntry).Where(r => r != null);
+              => b?.Select(bEntry => a & bEntry).Where(r => r != null).Distinct();
 
+        /// <summary>
+        /// Cartesian product of two or more <see cref="TimeInterval"/> intervals.
+        /// a & b = U(a & bi) where bi is part of b.
+        /// </summary>
+        /// <param name="a">The right interval</param>
+        /// <param name="b">The left intervals</param>
+        /// <returns>The common date <see cref="TimeInterval"/> interval between two or more <see cref="TimeInterval"/> intervals.</returns>
+        public static IEnumerable<TimeInterval?> operator &(IEnumerable<TimeInterval> b, TimeInterval a)
+            => b?.Select(bEntry => a & bEntry).Where(r => r != null).Distinct();
         /// <summary>
         /// Removes an interval from a list of <see cref="TimeInterval"/> intervals.
         /// </summary>
@@ -163,11 +166,17 @@ namespace Tachyon.Booking.Time
         /// <param name="mask">The mask to apply.</param>
         /// <returns>a - mask = U(ai - mask) where ai is part of a.</returns>
         public static IEnumerable<TimeInterval> operator -(IEnumerable<TimeInterval> intervals,
-            TimeInterval mask)
+                TimeInterval mask)
         {
+            if (intervals == null)
+            {
+                yield return mask;
+                yield break;
+            }
             IEnumerable<TimeInterval> excludedIntervals = new List<TimeInterval>();
-            return intervals.Aggregate(excludedIntervals, (current, interval) => current.Union((interval - mask).Where(x => x != null)
-                .Cast<TimeInterval>()));
+            foreach (var TimeInterval in intervals.Aggregate(excludedIntervals, (current, interval) => current.Union((interval - mask).Where(x => x != null)
+                .Cast<TimeInterval>())))
+                yield return TimeInterval;
         }
 
         /// <summary>
@@ -178,27 +187,44 @@ namespace Tachyon.Booking.Time
         /// <returns>r split into pieces after stripping b intervals from it</returns>
         public static IEnumerable<TimeInterval> operator -(TimeInterval r, IEnumerable<TimeInterval> b)
         {
-            if (r == null || b == null) yield break;
-            var masks = b.OrderBy(x => x.Due).ToList();
-            IEnumerable<TimeInterval> ranges = new List<TimeInterval>() { r };
-            ranges = masks.Aggregate(ranges, (current, mask) => (current - mask));
-
-            // unify intervals if possible
-            var orderedIntervals = ranges.OrderBy(x => x.Start).ToList();
-            for (var i = 0; i < orderedIntervals.Count - 1; i++)
+            if (b == null)
             {
-                var union = (orderedIntervals[i] + orderedIntervals[i + 1]).ToList();
-                if (union.Count != 1) continue;
-                orderedIntervals[i] = union[0];
-                orderedIntervals.RemoveAt(i + 1);
+                yield return r;
+                yield break;
             }
 
-            foreach (var interval in orderedIntervals)
-                yield return interval;
+            IEnumerable<TimeInterval> excludedIntervals = new List<TimeInterval>();
+            foreach (var TimeInterval in b.Aggregate(excludedIntervals, (current, interval) =>
+                current.Union((interval - r).Where(x => x != null)
+                    .Cast<TimeInterval>())))
+                yield return TimeInterval;
 
         }
 
-
+        /// <summary>
+        /// Applies a union operation between two or more <see cref="TimeInterval"/> intervals.
+        /// </summary>
+        /// <param name="a">The left interval</param>
+        /// <param name="b">The right intervals</param>
+        /// <returns>a U bi where bi is part of b</returns>
+        public static IEnumerable<TimeInterval> operator +(TimeInterval a, IEnumerable<TimeInterval> b)
+        {
+            if (b == null) return null;
+            IEnumerable<TimeInterval> excludedIntervals = new List<TimeInterval>();
+            return b.Aggregate(excludedIntervals, (current, interval) => current.Union(interval + a)).Distinct();
+        }
+        /// <summary>
+        /// Applies a union operation between two or more <see cref="TimeInterval"/> intervals.
+        /// </summary>
+        /// <param name="a">The right interval</param>
+        /// <param name="b">The left intervals</param>
+        /// <returns>a U bi where bi is part of b</returns>
+        public static IEnumerable<TimeInterval> operator +(IEnumerable<TimeInterval> b, TimeInterval a)
+        {
+            if (b == null) return null;
+            IEnumerable<TimeInterval> excludedIntervals = new List<TimeInterval>();
+            return b.Aggregate(excludedIntervals, (current, interval) => current.Union(interval + a)).Distinct();
+        }
         #endregion
     }
 }

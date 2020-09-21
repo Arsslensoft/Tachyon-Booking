@@ -8,7 +8,6 @@ using Xunit;
 
 namespace Tachyon.Booking.Tests.Time
 {
-
     public class DateTimeOffsetIntervalTests
     {
         public static DateTimeOffsetInterval A { get; } = new DateTimeOffsetInterval(DateTimeOffset.Parse("2009-01-11T09:00:00+00:00"), DateTimeOffset.Parse("2009-01-11T10:00:00+00:00"));
