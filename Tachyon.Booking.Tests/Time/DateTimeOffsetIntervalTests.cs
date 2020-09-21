@@ -262,6 +262,8 @@ namespace Tachyon.Booking.Tests.Time
         [Fact]
         public void EqualObjectTest()
         {
+            Assert.False(A.Equals((object)null));
+
             Assert.True(A.Equals((object)new DateTimeOffsetInterval(A.Start, A.Due)));
             Assert.False(A.Equals((object)new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(-1))));
             Assert.False(A.Equals((object)new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(1))));
