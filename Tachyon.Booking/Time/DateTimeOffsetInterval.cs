@@ -55,6 +55,8 @@ namespace Tachyon.Booking.Time
         public static bool operator !=(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => !a.Equals(b);
         public static bool operator >(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => a.CompareTo(b) == 1;
         public static bool operator <(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => a.CompareTo(b) == -1;
+        public static bool operator ^(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => (a.Start >= b.Start && a.Due <= b.Due) || (a.Start <= b.Start && a.Due >= b.Due); // a in b  OR b in a
+        public static bool operator |(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => (a.Start >= b.Start && a.Start <= b.Due) || (a.Due >= b.Start && a.Due <= b.Due) || (b ^ a); // a intersects with b
         #endregion
 
         #region Simple Arithmetic Operators
@@ -173,10 +175,15 @@ namespace Tachyon.Booking.Time
         public static IEnumerable<DateTimeOffsetInterval> operator -(IEnumerable<DateTimeOffsetInterval> intervals,
                 DateTimeOffsetInterval mask)
         {
-            if (intervals == null) return null;
+            if (intervals == null)
+            {
+                yield return mask;
+                yield break;
+            }
             IEnumerable<DateTimeOffsetInterval> excludedIntervals = new List<DateTimeOffsetInterval>();
-            return intervals.Aggregate(excludedIntervals, (current, interval) => current.Union((interval - mask).Where(x => x != null)
-                .Cast<DateTimeOffsetInterval>()));
+            foreach (var dateTimeOffsetInterval in intervals.Aggregate(excludedIntervals, (current, interval) => current.Union((interval - mask).Where(x => x != null)
+                .Cast<DateTimeOffsetInterval>())))
+                yield return dateTimeOffsetInterval;
         }
 
         /// <summary>

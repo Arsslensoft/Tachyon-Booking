@@ -201,8 +201,10 @@ namespace Tachyon.Booking.Tests.Time
         [Fact]
         public void ExceptListNullTest()
         {
-            Assert.Null(A - (IEnumerable<DateTimeOffsetInterval>)null);
-            Assert.Null((IEnumerable<DateTimeOffsetInterval>)null - A);
+            Assert.Single(A - (IEnumerable<DateTimeOffsetInterval>)null);
+            Assert.Single((IEnumerable<DateTimeOffsetInterval>)null - A);
+            Assert.Equal(A, (A - (IEnumerable<DateTimeOffsetInterval>)null).FirstOrDefault());
+            Assert.Equal((A - (IEnumerable<DateTimeOffsetInterval>)null).FirstOrDefault(), ((IEnumerable<DateTimeOffsetInterval>)null - A).FirstOrDefault());
         }
         [Fact]
         public void EqualityTest()
@@ -272,7 +274,33 @@ namespace Tachyon.Booking.Tests.Time
             Assert.NotEqual(A.GetHashCode(), (new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(1))).GetHashCode());
             Assert.NotEqual(A.GetHashCode(), (new DateTimeOffsetInterval(A.Start, A.Due.AddTicks(-1))).GetHashCode());
         }
+        [Fact]
+        public void IntersectsTest()
+        {
+            Assert.True(A | new DateTimeOffsetInterval(A.Start, A.Due));
+            Assert.True(A | ContainsA);
+            Assert.True(A | IntersectsWithA);
+            Assert.True(A | NoIntersectionWithA);
+            Assert.True(NoIntersectionWithA | A);
+            Assert.True(IntersectsWithA | A);
+            Assert.True(ContainsA | A);
 
+            Assert.False(A | new DateTimeOffsetInterval(NoIntersectionWithA.Start.AddTicks(1), NoIntersectionWithA.Due));
+            Assert.False(new DateTimeOffsetInterval(NoIntersectionWithA.Start.AddTicks(1), NoIntersectionWithA.Due) | A);
+
+        }
+
+        [Fact]
+        public void InTest()
+        {
+            Assert.True(A ^ new DateTimeOffsetInterval(A.Start, A.Due));
+            Assert.True(A ^ ContainsA);
+            Assert.False(A ^ IntersectsWithA);
+            Assert.False(A ^ NoIntersectionWithA);
+            Assert.False(NoIntersectionWithA ^ A);
+            Assert.False(IntersectsWithA ^ A);
+            Assert.True(ContainsA ^ A);
+        }
 
     }
 }
