@@ -55,7 +55,7 @@ namespace Tachyon.Booking.Time
         public static bool operator !=(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => !a.Equals(b);
         public static bool operator >(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => a.CompareTo(b) == 1;
         public static bool operator <(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => a.CompareTo(b) == -1;
-        public static bool operator ^(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => (a.Start >= b.Start && a.Due <= b.Due) || (a.Start <= b.Start && a.Due >= b.Due); // a in b  OR b in a
+        public static bool operator ^(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => (a.Start >= b.Start && a.Due <= b.Due); // a in b 
         public static bool operator |(DateTimeOffsetInterval a, DateTimeOffsetInterval b) => (a.Start >= b.Start && a.Start <= b.Due) || (a.Due >= b.Start && a.Due <= b.Due) || (b ^ a); // a intersects with b
         #endregion
 
@@ -120,27 +120,21 @@ namespace Tachyon.Booking.Time
         /// <returns>a U b</returns>
         public static IEnumerable<DateTimeOffsetInterval> operator +(DateTimeOffsetInterval a, DateTimeOffsetInterval b)
         {
-            var r = a & b;
-            var first = a.Start < b.Start ? a : b;
-            var last = a.Start > b.Start ? a : b;
-            if (r != null)
-            {
-                // a in b or b in a
-                if (r == a) // b is bigger than a
-                {
-                    yield return b;
-                }
-                else if (r == b) // a is bigger than b
-                {
-                    yield return a;
-                }
-                else if (first.Start <= r.Value.Start || last.Start <= r.Value.Start) // left or left
-                    yield return new DateTimeOffsetInterval(first.Start, last.Due);
-            }
-            else
+
+            if (a.Start > b.Due || a.Due < b.Start)    // a inter b = empty
             {
                 yield return a;
                 yield return b;
+            }
+            else if (a ^ b) // a in b
+                yield return b;
+            else if (b ^ a) // b in a
+                yield return a;
+            else
+            {
+                var first = a.Start < b.Start ? a : b;
+                var last = a.Start > b.Start ? a : b;
+                yield return new DateTimeOffsetInterval(first.Start, last.Due);
             }
         }
 

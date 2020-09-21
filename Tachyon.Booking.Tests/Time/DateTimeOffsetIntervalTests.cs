@@ -117,12 +117,18 @@ namespace Tachyon.Booking.Tests.Time
         public void UnionWithNoIntersectionTest(DateTimeOffsetInterval a, DateTimeOffsetInterval b)
         {
             var r = a + b;
-            Assert.Equal(2, r.Count());
+            Assert.Equal(1, r.Count());
             var first = r.FirstOrDefault();
-            var second = r.LastOrDefault();
+            Assert.Equal(first.Start, a.Start);
+            Assert.Equal(first.Due, b.Due);
+            r = a + new DateTimeOffsetInterval(b.Start.AddTicks(1), b.Due);
+            Assert.Equal(2, r.Count());
+            first = r.FirstOrDefault();
             Assert.Equal(first.Start, a.Start);
             Assert.Equal(first.Due, a.Due);
-            Assert.Equal(second.Start, b.Start);
+
+            var second = r.LastOrDefault();
+            Assert.Equal(second.Start, b.Start.AddTicks(1));
             Assert.Equal(second.Due, b.Due);
         }
         [Theory]
@@ -139,11 +145,17 @@ namespace Tachyon.Booking.Tests.Time
         [Fact]
         public void UnionListTest()
         {
-            var r = A + ListA.Skip(1);
-            Assert.Contains(r, x => x == ContainsA);
-            Assert.Contains(r, x => x == A);
-            Assert.Contains(r, x => x == NoIntersectionWithA);
-            Assert.Contains(r, x => x == new DateTimeOffsetInterval(A.Start, NoIntersectionWithA.Due));
+            var distinct = new List<DateTimeOffsetInterval>()
+            {
+                (DateTimeOffset.Parse("2009-11-01T08:00:00+01:00"), DateTimeOffset.Parse("2009-11-01T09:00:00+01:00")),
+                (DateTimeOffset.Parse("2009-11-01T10:00:00+01:00"), DateTimeOffset.Parse("2009-11-01T12:00:00+01:00")),
+                (DateTimeOffset.Parse("2009-11-01T14:00:00+01:00"), DateTimeOffset.Parse("2009-11-01T15:00:00+01:00")),
+                (DateTimeOffset.Parse("2009-11-01T15:00:00+01:00"), DateTimeOffset.Parse("2009-11-01T17:00:00+01:00")),
+            };
+            var r = distinct[0] + distinct.Skip(1);
+            for (int i = 0; i < distinct.Count; i++)
+                Assert.Contains(r, x => x == distinct[i]);
+
             Assert.Null(A + (IEnumerable<DateTimeOffsetInterval>)null);
             Assert.Null((IEnumerable<DateTimeOffsetInterval>)null + A);
         }
@@ -160,7 +172,6 @@ namespace Tachyon.Booking.Tests.Time
             Assert.Equal((A + A).FirstOrDefault(), A);
             Assert.Equal((ContainsA + A).FirstOrDefault(), ContainsA);
             Assert.Equal((A + ContainsA).FirstOrDefault(), ContainsA);
-
         }
 
         [Fact]
@@ -315,9 +326,6 @@ namespace Tachyon.Booking.Tests.Time
             Assert.True(A ^ ContainsA);
             Assert.False(A ^ IntersectsWithA);
             Assert.False(A ^ NoIntersectionWithA);
-            Assert.False(NoIntersectionWithA ^ A);
-            Assert.False(IntersectsWithA ^ A);
-            Assert.True(ContainsA ^ A);
         }
 
         [Fact]
