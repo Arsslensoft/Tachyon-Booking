@@ -1,9 +1,12 @@
-﻿namespace Tachyon.Booking.Result.Enums
+﻿using System;
+
+namespace Tachyon.Booking.Result.Enums
 {
+    [Flags]
     public enum EvaluationStatus
     {
-        None,
-        Success,
-        Failed
+        Success = 0x2,
+        Error = 0x4,
+        Override = 0x8
     }
 }

@@ -23,6 +23,6 @@ namespace Tachyon.Booking.Handlers
         IMiddleware AttachDataSource<TDataSource>()
             where TDataSource : class, IDataSource, new();
 
-        IEvaluationResult Evaluate<TResult>(IBookingContext context);
+        IEvaluationResult Evaluate<TResult>(IBookingContext context, IEvaluationResult previousEvaluation) where TResult : class;
     }
 }

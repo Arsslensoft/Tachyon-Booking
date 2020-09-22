@@ -12,7 +12,7 @@ using Tachyon.Booking.Result.Enums;
 
 namespace Tachyon.Booking.Handlers
 {
-    public abstract class BasMiddleware : IMiddleware
+    public abstract class BaseMiddleware : IMiddleware
     {
         public IEnumerable<IPolicy> Policies { get; private set; } = new List<IPolicy>();
         public IDataSource DataSource { get; private set; }
@@ -35,13 +35,18 @@ namespace Tachyon.Booking.Handlers
             return this;
         }
 
-        public IEvaluationResult Evaluate<TResult>(IBookingContext context)
+        public IEvaluationResult Evaluate<TResult>(IBookingContext context, IEvaluationResult previousEvaluation) where TResult : class
         {
             if (Policies.Any(policy => !policy.CanBeIgnored(context) && !policy.IsValid(context)))
-                return Next.Evaluate<TResult>(context);
+                return Next.Evaluate<TResult>(context, previousEvaluation);
 
-            var currentEvaluation = DoEvaluate<TResult>(context);
-            return currentEvaluation.Status == EvaluationStatus.None ? Next.Evaluate<TResult>(context) : currentEvaluation;
+            var currentEvaluation = DoEvaluate<TResult>(context, previousEvaluation);
+            if (Next != null)
+                return ((currentEvaluation.Status & EvaluationStatus.Error) != EvaluationStatus.Error &&
+                        (currentEvaluation.Status & EvaluationStatus.Override) != EvaluationStatus.Override)
+                    ? Next.Evaluate<TResult>(context, currentEvaluation)
+                    : currentEvaluation;
+            else return currentEvaluation;
         }
 
         public IMiddleware With<T, TDataSource>()
@@ -50,6 +55,6 @@ namespace Tachyon.Booking.Handlers
          => With<T>().AttachDataSource<TDataSource>();
 
 
-        public abstract IEvaluationResult DoEvaluate<TResult>(IBookingContext context);
+        public abstract IEvaluationResult DoEvaluate<TResult>(IBookingContext context, IEvaluationResult previousEvaluation) where TResult : class;
     }
 }

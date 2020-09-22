@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Tachyon.Booking.Context;
+using Tachyon.Booking.Context.Contracts;
 using Tachyon.Booking.Handlers;
+using Tachyon.Booking.Result;
 using Tachyon.Booking.Result.Contracts;
 using Tachyon.Booking.Scheduling.Contracts;
 
@@ -18,9 +22,23 @@ namespace Tachyon.Booking.Scheduling
             ((HashSet<BaseProcess>)Processes).Add(process);
         }
 
-        public IEvaluationResult Evaluate<T>(string processName, T start, T due) where T : IEquatable<T>, IComparable<T>
+        public IEvaluationResult Evaluate<TResult, T>(string processName, T start, T due) where T : IEquatable<T>, IComparable<T>
+            where TResult : class
         {
-            throw new NotImplementedException();
+            var process = Processes.FirstOrDefault(x => x.Name == processName);
+            if (process == null) return null;
+            var context = new BookingContext<T>(start, due, process);
+            return process.EntryPoint.Evaluate<TResult>(context, new NoneResult());
+        }
+
+        public IEvaluationResult Evaluate<TResult, TContext>(string processName, Func<BaseProcess, TContext> createContextCallback)
+            where TContext : IBookingContext
+            where TResult : class
+        {
+            var process = Processes.FirstOrDefault(x => x.Name == processName);
+            if (process == null) return null;
+            var context = createContextCallback(process);
+            return process.EntryPoint.Evaluate<TResult>(context, new NoneResult());
         }
     }
 }
