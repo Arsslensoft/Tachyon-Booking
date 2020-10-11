@@ -14,11 +14,11 @@ namespace Tachyon.Booking.Handlers
 {
     public abstract class BaseMiddleware : IMiddleware
     {
-        public IEnumerable<IPolicy> Policies { get; private set; } = new List<IPolicy>();
-        public IDataSource DataSource { get; private set; }
-        public IMiddleware Next { get; private set; }
+        public virtual IEnumerable<IPolicy> Policies { get; private set; } = new List<IPolicy>();
+        public virtual IDataSource DataSource { get; private set; }
+        public virtual IMiddleware Next { get; private set; }
 
-        public IMiddleware With<T>() where T : class, IMiddleware, new()
+        public virtual IMiddleware With<T>() where T : class, IMiddleware, new()
         {
             if (Next == null)
                 Next = Activator.CreateInstance<T>();
@@ -29,13 +29,13 @@ namespace Tachyon.Booking.Handlers
         }
 
 
-        public IMiddleware AttachDataSource<TDataSource>() where TDataSource : class, IDataSource, new()
+        public virtual IMiddleware AttachDataSource<TDataSource>() where TDataSource : class, IDataSource, new()
         {
             this.DataSource = Activator.CreateInstance<TDataSource>();
             return this;
         }
 
-        public IEvaluationResult Evaluate<TResult>(IBookingContext context, IEvaluationResult previousEvaluation) where TResult : class
+        public virtual IEvaluationResult Evaluate<TResult>(IBookingContext context, IEvaluationResult previousEvaluation) where TResult : class
         {
             if (Policies.Any(policy => !policy.CanBeIgnored(context) && !policy.IsValid(context)))
                 return Next.Evaluate<TResult>(context, previousEvaluation);
@@ -49,7 +49,7 @@ namespace Tachyon.Booking.Handlers
             else return currentEvaluation;
         }
 
-        public IMiddleware With<T, TDataSource>()
+        public virtual IMiddleware With<T, TDataSource>()
             where T : class, IMiddleware, new()
             where TDataSource : class, IDataSource, new()
          => With<T>().AttachDataSource<TDataSource>();

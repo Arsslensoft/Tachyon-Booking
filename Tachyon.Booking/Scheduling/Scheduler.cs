@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Tachyon.Booking.Context;
 using Tachyon.Booking.Context.Contracts;
+using Tachyon.Booking.Exceptions;
 using Tachyon.Booking.Handlers;
 using Tachyon.Booking.Result;
 using Tachyon.Booking.Result.Contracts;
@@ -26,7 +27,8 @@ namespace Tachyon.Booking.Scheduling
             where TResult : class
         {
             var process = Processes.FirstOrDefault(x => x.Name == processName);
-            if (process == null) return null;
+            if (process == null) throw new ProcessNotFoundException(processName);
+
             var context = new BookingContext<T>(start, due, process);
             return process.EntryPoint.Evaluate<TResult>(context, new NoneResult());
         }
@@ -36,7 +38,8 @@ namespace Tachyon.Booking.Scheduling
             where TResult : class
         {
             var process = Processes.FirstOrDefault(x => x.Name == processName);
-            if (process == null) return null;
+            if (process == null) throw new ProcessNotFoundException(processName);
+
             var context = createContextCallback(process);
             return process.EntryPoint.Evaluate<TResult>(context, new NoneResult());
         }
